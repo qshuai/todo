@@ -1,27 +1,29 @@
 <template>
 	<el-row class="new-task" :gutter="25">
 		<el-col :span="18">
-			<el-input placeholder="请输入待办任务" suffix-icon="el-icon-plus" v-model="input1"></el-input>
+			<el-input placeholder="请输入待办任务" suffix-icon="el-icon-plus" v-model="title" @keyup.enter="createTask"
+				@blur="createTask">
+			</el-input>
 		</el-col>
 		<el-col :span="6">
-			<el-date-picker placeholder="选择截止日期" v-model="value1" type="date" :disabled-date="disabledDate"
-				:shortcuts="shortcuts"></el-date-picker>
+			<el-date-picker placeholder="选择截止日期" v-model="deadline" type="datetime" :shortcuts="shortcuts"
+				format="YYYY-MM-DD HH:mm:ss" value-format="YYYY-MM-DD HH:mm:ss" @keyup.enter="createTask">
+			</el-date-picker>
 		</el-col>
 	</el-row>
 </template>
 
 <script>
+	import axios from 'axios';
+	import moment from 'moment';
+	import config from '@/components/Config';
+
 	export default {
 		name: 'NewTask',
-		props: {
-			msg: String
-		},
 		data() {
 			return {
-				input1: "",
-				disabledDate(time) {
-					return time.getTime() > Date.now()
-				},
+				title: "",
+				deadline: "",
 				shortcuts: [{
 					text: '今天',
 					value: new Date(),
@@ -43,7 +45,7 @@
 						date.setTime(date.getTime() + (offset) * (3600 * 1000 * 24))
 						return date
 					})(),
-				},{
+				}, {
 					text: '下周二',
 					value: (() => {
 						const date = new Date()
@@ -54,7 +56,7 @@
 						date.setTime(date.getTime() + (offset) * (3600 * 1000 * 24))
 						return date
 					})(),
-				},{
+				}, {
 					text: '下周三',
 					value: (() => {
 						const date = new Date()
@@ -65,7 +67,7 @@
 						date.setTime(date.getTime() + (offset) * (3600 * 1000 * 24))
 						return date
 					})(),
-				},{
+				}, {
 					text: '下周四',
 					value: (() => {
 						const date = new Date()
@@ -76,7 +78,7 @@
 						date.setTime(date.getTime() + (offset) * (3600 * 1000 * 24))
 						return date
 					})(),
-				},{
+				}, {
 					text: '下周五',
 					value: (() => {
 						const date = new Date()
@@ -87,7 +89,7 @@
 						date.setTime(date.getTime() + (offset) * (3600 * 1000 * 24))
 						return date
 					})(),
-				},{
+				}, {
 					text: '下周六',
 					value: (() => {
 						const date = new Date()
@@ -98,7 +100,7 @@
 						date.setTime(date.getTime() + (offset) * (3600 * 1000 * 24))
 						return date
 					})(),
-				},{
+				}, {
 					text: '下周日',
 					value: (() => {
 						const date = new Date()
@@ -110,9 +112,38 @@
 						return date
 					})(),
 				}],
-				value1: '',
-				value2: '',
 			};
+		},
+		methods: {
+			createTask() {
+				let title = this.title;
+				let deadline = this.deadline;
+
+				if (title.replace(/(^s*)|(s*$)/g, "").length == 0 || deadline.replace(/(^s*)|(s*$)/g, "").length == 0) {
+					return
+				}
+				this.title = "";
+				this.deadline = "";
+
+				axios.post(config.host + "/task", {
+					"title": title,
+					"deadline": moment(deadline).format("YYYY-MM-DD HH:mm:ss")
+				}).then(() => {
+					this.$notify({
+						title: "新建任务",
+						message: '恭喜你，新建任务成功！',
+						type: 'success',
+						duration: 1000
+					});
+				}).catch((error) => {
+					this.$notify({
+						title: '新建任务',
+						message: '新建任务失败！' + error,
+						type: 'error',
+						duration: 2000
+					});
+				});
+			},
 		}
 	}
 </script>

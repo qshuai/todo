@@ -5,13 +5,14 @@
 		</el-form-item>
 		<el-form-item label="分类">
 			<el-select v-model="category" placeholder="请输入任务分类">
-				<el-option label="区域一" value="shanghai"></el-option>
-				<el-option label="区域二" value="beijing"></el-option>
+				<el-option v-for="(category,index) in categories" :label="category.name" :value="category.id"
+					:key="index"></el-option>
 			</el-select>
 		</el-form-item>
 		<el-form-item label="截止时间">
 			<el-col :span="11">
-				<el-date-picker type="date" placeholder="选择截止日期" v-model="deadline" style="width: 100%;">
+				<el-date-picker type="datetime" placeholder="选择截止日期" v-model="deadline" style="width: 100%;"
+					format="YYYY-MM-DD HH:mm:ss" value-format="YYYY-MM-DD HH:mm:ss">
 				</el-date-picker>
 			</el-col>
 		</el-form-item>
@@ -30,7 +31,7 @@
 				<el-input v-if="addProject" v-model="inputValue" ref="saveTagInput" @keyup.enter="handleInputConfirm"
 					@blur="handleInputConfirm" style="width: 150px; margin-right: 5px;" size="small">
 				</el-input>
-				<el-button class="button-new-tag" size="small" @click="showInput">+ New Tag</el-button>
+				<el-button class="button-new-tag" size="small" @click="showInput">+ New Project</el-button>
 			</el-col>
 		</el-form-item>
 		<el-form-item label="分支名称">
@@ -39,13 +40,13 @@
 			</el-col>
 		</el-form-item>
 		<el-form-item label="子任务">
-			<el-col v-for="subTask in subTasks" :key="subTask.name" style="width: 100%;">
-				<el-checkbox class="subTask" checked="subTask.completed">{{subTask.name}}</el-checkbox>
+			<el-col v-for="subTask in subTasks" :key="subTask.id" style="width: 100%;">
+				<el-checkbox class="subTask" checked="false">{{subTask.title}}</el-checkbox>
 			</el-col>
 			<el-input v-model="newSubTask" @keyup.enter="addSubTask" @blur="addSubTask"></el-input>
 		</el-form-item>
 		<el-form-item label="备注">
-			<el-input type="textarea" v-model="desc" autosize></el-input>
+			<el-input type="textarea" v-model="remark" autosize></el-input>
 		</el-form-item>
 		<el-form-item>
 			<el-button type="primary" @click="onSubmit">提 交</el-button>
@@ -54,43 +55,62 @@
 </template>
 
 <script>
+	import axios from 'axios';
+	import config from '@/components/Config';
+
 	export default {
 		name: 'TodoDetail',
+		props: ["detail"],
 		data() {
 			return {
-				title: "",
-				category: [],
-				deadline: "",
-				branch: "",
-				type: 1,
-				resource: "",
-				desc: "",
-				a: "",
-				projects: ["smart-sale-service", "customer-dispatch"],
+				id: this.detail.id,
+				title: this.detail.title,
+				category: 0,
+				categories: [],
+				deadline: this.detail.deadline,
+				jira: this.detail.jira,
+				wiki: this.detail.wiki,
+				projects: this.detail.projects,
+				branch: this.detail.branch,
+				subTasks: [],
+				remark: this.detail.remark,
+				newSubTask: "",
 				addProject: false,
 				inputValue: '',
-				subTasks: [{
-						name: "任务1",
-						completed: false
-					},
-					{
-						name: "任务2",
-						completed: false
-					},
-					{
-						name: "任务3",
-						completed: true
-					},
-				],
-				newSubTask: "",
 			}
+		},
+		created() {
+			// 构造页面时请求数据
+			axios.get(config.host + '/categories')
+				.then((response) => {
+					if (response.data.data.length <= 0) {
+						return;
+					}
+
+					this.categories = response.data.data;
+				}).catch((error) => {
+					this.$notify({
+						title: "任务分类",
+						message: "获取任务分类数据错误: " + error
+					});
+				});
+
+			this.category = this.detail.category;
+			this.subTasks = this.detail.sub_tasks;
 		},
 		methods: {
 			onSubmit() {
-				console.log(this.$axios);
-				this.$axios.post('/user', {
-					firstName: 'Fred',
-					lastName: 'Flintstone'
+				axios.put(config.host + '/task', {
+					id: this.id,
+					title: this.title,
+					category: this.category,
+					deadline: this.deadline,
+					jira: this.jira,
+					wiki: this.wiki,
+					projects: this.projects,
+					branch: this.branch,
+					subtasks: this.subTasks,
+					remark: this.remark,
 				}).then(function(response) {
 					console.log(response);
 				}).catch(function(error) {
@@ -119,8 +139,8 @@
 				let newSubTask = this.newSubTask;
 				if (newSubTask) {
 					this.subTasks.push({
-						name: newSubTask,
-						completed: false
+						title: newSubTask,
+						state: 0
 					});
 				}
 				this.newSubTask = "";
@@ -135,8 +155,10 @@
 		border-right: 1px solid #DAE3F2;
 		padding: 5px;
 	}
+
 	.project {
 		margin-right: 5px;
 	}
+
 	.subTask.checked {}
 </style>
